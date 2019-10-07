@@ -6,7 +6,7 @@ Created on Tue Sep 24 09:19:21 2019
 """
 
 import requests
-from bs4 import BeautifulSoup
+import html
 import pprint
 import time
 import os
@@ -41,6 +41,11 @@ def split(url,to_list=False,to_dict=False,to_str=False):
         return url.split("?")[0]
 
 
+transferred_list=[]
+def transferred(ostr):
+    pass
+
+
 get_song_url="https://wwwapi.kugou.com/yy/index.php"
 class song:
     def __init__(self,Hash,AlbumID):
@@ -49,6 +54,7 @@ class song:
         self.data=self.response.json()
         if self.data["err_code"]!=0:
             raise NetworkError(self.data["err_code"])
+        self.name=self.data["data"]["audio_name"]
     
     def download(self,file_dir="",file_name=""):
         if file_name=="":
@@ -56,9 +62,12 @@ class song:
         else:
             file=os.path.join(file_dir,file_name)
         
-        f=open(file,"wb")
-        f.write(requests.get(self.data["data"]["play_url"],headers=header).content)
-        f.close()
+        if self.data["data"]["play_url"]!="":
+            f=open(file,"wb")
+            f.write(requests.get(self.data["data"]["play_url"],headers=header).content)
+            f.close()
+        else:
+            raise NetworkError("Error:The play_url is empty.")
     
     def download_img(self,file_dir="",file_name=""):
         if file_name=="":
@@ -66,9 +75,12 @@ class song:
         else:
             file=os.path.join(file_dir,file_name)
         
-        f=open(file,"wb")
-        f.write(requests.get(self.data["data"]["img"],headers=header).content)
-        f.close()
+        if self.data["data"]["img"]!="":
+            f=open(file,"wb")
+            f.write(requests.get(self.data["data"]["img"],headers=header).content)
+            f.close()
+        else:
+            raise NetworkError("Error:The img_url is empty.")
 
 
 search_url="https://songsearch.kugou.com/song_search_v2"
@@ -79,9 +91,11 @@ class search:
         self.data=self.response.json()
         if self.data["error_code"]!=0:
             raise NetworkError(self.data["error_code"])
-    
-    def select(self,num):
-        return song(self.data["data"]["lists"][num]["FileHash"],self.data["data"]["lists"][num]["AlbumID"])
+        
+        self.songs=[]
+        for i in self.data["data"]["lists"]:
+            self.songs.append(song(i["FileHash"],i["AlbumID"]))
+
 
 
 album_url="https://www.kugou.com/album/"
@@ -92,23 +106,26 @@ class album:
         self.data_list=re.findall('[A-Z0-9]+\|[0-9]+',self.response.text)
         for i in self.data_list:
             self.songs.append(song(i.split("|")[0],i.split("|")[1]))
-        self.soup = BeautifulSoup(self.response.text,"lxml")
-        self.soup.find()
-        self.intro=re.findall(r'<div class="intro"><p><span>简介：</span>.+</p></div>',self.response.text)
-        """<p><span>简介：</span>CD (1990/12/12)
-ディスク枚数: 1
-レーベル: ソニーレコード
-収録時間: 44 分
-ASIN: B00005G3EV
-EAN： 4988009159621</p>"
-singer_url="""
+        f1=self.response.text.find("<p class=\"more_intro\">")+22
+        f2=self.response.text.find("</p>",f1-1)
+        self.intro=html.unescape(self.response.text[f1:f2].replace("<span></span>",""))
+        f1=self.response.text.find("<p class=\"detail\">")+18
+        f2=self.response.text.find("</p>",f1-1)
+        self.detail={}
+        for i in html.unescape(self.response.text[f1:f2]).split("<br />"):
+            f_1=i.find("<span>")+6
+            f_2=i.find("</span>",f_1-1)
+            self.detail[i[f_1:f_2-1]]=i[f_2+7:].replace("\r\n        ","")
+
 class singer:
     def __init__(self,album_id):
         pass
 if __name__=="__main__":
-    """"
-    s=search("夕焼けの歌")
-    s.select(0).download()
-    """
-    a=album(1852745)
+    
+    #s=search("夕焼けの歌")
+    #s.songs[0].download()
+    
+    a=album(1602728)
+    print(len(a.songs))
+    a.songs[int(input("选择："))].download()
 
