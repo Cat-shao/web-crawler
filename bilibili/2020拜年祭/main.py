@@ -2,7 +2,7 @@
 """
 Created on Fri Jan 17 20:23:16 2020
 
-@author: Cat-shao
+@author: x1c
 """
 from selenium import webdriver
 #from selenium.webdriver.common.action_chains import ActionChains
@@ -40,5 +40,6 @@ while 1:
             #ActionChains(driver).click(driver.find_element_by_xpath("//div[@class='close-button ibg']")).perform()
             
         driver.find_element_by_xpath("//div[@class='close-button ibg']").click()
+        sleep(0.5)
 
     #sleep(0.01)
